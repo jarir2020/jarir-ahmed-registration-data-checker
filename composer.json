@@ -2,6 +2,7 @@
     "name": "jarir-ahmed/registration-data-checker",
     "description": "A package for validating user registration form submissions.",
     "type": "library",
+    "license": "MIT",
     "require": {
         "php": "^7.4 || ^8.0"
     },
