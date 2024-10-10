@@ -1,0 +1,15 @@
+{
+    "name": "jarir-ahmed/registration-data-checker",
+    "description": "A package for validating user registration form submissions.",
+    "type": "library",
+    "require": {
+        "php": "^7.4 || ^8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "JarirAhmed\\RegistrationDataChecker\\": "src/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
