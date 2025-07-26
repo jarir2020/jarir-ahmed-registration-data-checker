@@ -7,7 +7,7 @@ class RegistrationDataChecker
     /**
      * Check if the email address is valid.
      */
-    public function isValidEmail(string $email): bool
+    public static function isValidEmail(string $email): bool
     {
         return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
     }
@@ -15,7 +15,7 @@ class RegistrationDataChecker
     /**
      * Check if the password is at least 8 characters long.
      */
-    public function isValidPassword(string $password): bool
+    public static function isValidPassword(string $password): bool
     {
         return strlen($password) >= 8;
     }
@@ -23,7 +23,7 @@ class RegistrationDataChecker
     /**
      * Check if the phone number is valid and includes the country code.
      */
-    public function isValidPhoneNumber(string $phoneNumber): bool
+    public static function isValidPhoneNumber(string $phoneNumber): bool
     {
         // Regex for validating phone number (example for international format)
         return preg_match('/^\+\d{1,3}\s?\d{4,14}$/', $phoneNumber);
@@ -32,7 +32,7 @@ class RegistrationDataChecker
     /**
      * Check if the user is 18 or older based on the provided date of birth.
      */
-    public function isAgeValid(string $dateOfBirth): bool
+    public static function isAgeValid(string $dateOfBirth): bool
     {
         $dob = new \DateTime($dateOfBirth);
         $today = new \DateTime();
@@ -43,7 +43,7 @@ class RegistrationDataChecker
     /**
      * Check if the uploaded image has a valid extension and size limit.
      */
-    public function isValidImage(string $filePath, int $maxSize = 2 * 1024 * 1024): bool
+    public static  function isValidImage(string $filePath, int $maxSize = 2 * 1024 * 1024): bool
     {
         $validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'tiff', 'svg', 'ico', 'heif', 'heic'];
         $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
@@ -55,7 +55,7 @@ class RegistrationDataChecker
     /**
      * Check if the input country is valid using an API.
      */
-    public function isValidCountry(string $country): bool
+    public static function isValidCountry(string $country): bool
     {
         $countriesData = @file_get_contents('https://restcountries.com/v3.1/all');
         
@@ -72,7 +72,7 @@ class RegistrationDataChecker
     /**
      * Check if the input language is valid using an API.
      */
-    public function isValidLanguage(string $language): bool
+    public static function isValidLanguage(string $language): bool
     {
         $countriesData = @file_get_contents('https://restcountries.com/v3.1/all');
         
@@ -91,7 +91,7 @@ class RegistrationDataChecker
     /**
      * Check if the uploaded document has a valid extension and size limit.
      */
-    public function isValidDocument(string $filePath, int $maxSize = 5 * 1024 * 1024): bool
+    public static function isValidDocument(string $filePath, int $maxSize = 5 * 1024 * 1024): bool
     {
         $validExtensions = [
             'pdf',    // Portable Document Format
@@ -127,7 +127,7 @@ class RegistrationDataChecker
      * @return bool True if the file has a valid extension; otherwise, false.
      */
 
-    public function isValidCustomExtension(string $filePath, array $allowedExtensions): bool
+    public static function isValidCustomExtension(string $filePath, array $allowedExtensions): bool
     {
         $fileExtension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
         return in_array($fileExtension, $allowedExtensions);
@@ -156,7 +156,7 @@ class RegistrationDataChecker
      * @param int $maxHeight The maximum height in pixels.
      * @return bool True if the image is within the maximum dimensions; otherwise, false.
      */
-    public function exceedsMaximumDimensions(string $filePath, int $maxWidth, int $maxHeight): bool
+    public static function exceedsMaximumDimensions(string $filePath, int $maxWidth, int $maxHeight): bool
     {
         list($width, $height) = getimagesize($filePath);
         
@@ -170,7 +170,7 @@ class RegistrationDataChecker
      * @param int $minSize The minimum size in bytes.
      * @return bool True if the file size is greater than or equal to the minimum size; otherwise, false.
      */
-    public function meetsMinimumSize(string $filePath, int $minSize): bool
+    public static function meetsMinimumSize(string $filePath, int $minSize): bool
     {
         $fileSize = filesize($filePath);
         
@@ -184,7 +184,7 @@ class RegistrationDataChecker
      * @param int $maxSize The maximum size in bytes.
      * @return bool True if the file size is less than or equal to the maximum size; otherwise, false.
      */
-    public function exceedsMaximumSize(string $filePath, int $maxSize): bool
+    public static function exceedsMaximumSize(string $filePath, int $maxSize): bool
     {
         $fileSize = filesize($filePath);
         
@@ -197,7 +197,7 @@ class RegistrationDataChecker
      * @param string $filePath The path of the PHP file to check.
      * @return bool True if malware patterns are found; otherwise, false.
      */
-    public function containsMalware(string $filePath): bool
+    public static function containsMalware(string $filePath): bool
     {
         // Read the content of the PHP file
         $fileContent = file_get_contents($filePath);
