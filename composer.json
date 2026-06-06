@@ -3,13 +3,29 @@
     "description": "A package for validating user registration form submissions.",
     "type": "library",
     "license": "MIT",
+    "keywords": ["validation", "registration", "upload", "email", "phone"],
     "require": {
         "php": "^7.4 || ^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.0"
+    },
+    "suggest": {
+        "ext-fileinfo": "Enables MIME-based document upload validation",
+        "ext-gd": "Improves image content validation via getimagesize"
     },
     "autoload": {
         "psr-4": {
             "JarirAhmed\\RegistrationDataChecker\\": "src/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "JarirAhmed\\RegistrationDataChecker\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit"
     },
     "minimum-stability": "stable",
     "prefer-stable": true

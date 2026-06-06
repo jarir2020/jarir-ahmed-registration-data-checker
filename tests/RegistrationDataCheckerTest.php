@@ -1,87 +1,152 @@
 <?php
 
+namespace JarirAhmed\RegistrationDataChecker\Tests;
+
+use JarirAhmed\RegistrationDataChecker\RegistrationDataChecker as R;
 use PHPUnit\Framework\TestCase;
-use JarirAhmed\RegistrationDataChecker\RegistrationDataChecker;
 
 class RegistrationDataCheckerTest extends TestCase
 {
-    private $checker;
+    private string $dir;
+
+    // 1x1 PNG
+    private const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
     protected function setUp(): void
     {
-        $this->checker = new RegistrationDataChecker();
+        $this->dir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'rdc_' . uniqid('', true);
+        mkdir($this->dir);
     }
 
-    public function testIsValidEmail()
+    protected function tearDown(): void
     {
-        // Valid email
-        $this->assertTrue($this->checker->isValidEmail("test@example.com"));
-
-        // Invalid email
-        $this->assertFalse($this->checker->isValidEmail("invalid-email"));
+        foreach (glob($this->dir . '/*') ?: [] as $f) {
+            @unlink($f);
+        }
+        @rmdir($this->dir);
     }
 
-    public function testIsValidPassword()
+    private function write(string $name, string $content): string
     {
-        // Valid password (minimum 8 characters)
-        $this->assertTrue($this->checker->isValidPassword("password123"));
-
-        // Invalid password (less than 8 characters)
-        $this->assertFalse($this->checker->isValidPassword("short"));
+        $p = $this->dir . DIRECTORY_SEPARATOR . $name;
+        file_put_contents($p, $content);
+        return $p;
     }
 
-    public function testIsValidPhoneNumber()
-    {
-        // Valid phone number with country code
-        $this->assertTrue($this->checker->isValidPhoneNumber("+1234567890123"));
+    // --- basic validators ---------------------------------------------------
 
-        // Invalid phone number (missing country code)
-        $this->assertFalse($this->checker->isValidPhoneNumber("1234567890"));
+    public function testEmail()
+    {
+        $this->assertTrue(R::isValidEmail('test@example.com'));
+        $this->assertFalse(R::isValidEmail('invalid-email'));
     }
 
-    public function testIsAgeValid()
+    public function testPassword()
     {
-        // Valid age (18 or older)
-        $this->assertTrue($this->checker->isAgeValid("2000-01-01"));
-
-        // Invalid age (younger than 18)
-        $this->assertFalse($this->checker->isAgeValid("2010-01-01"));
+        $this->assertTrue(R::isValidPassword('password123'));
+        $this->assertFalse(R::isValidPassword('short'));
     }
 
-    public function testIsValidImage()
+    public function testPhone()
     {
-        // Valid image file (simulated path and size)
-        // Assuming the file exists at this path and has the correct extension and size
-        $this->assertTrue($this->checker->isValidImage("/path/to/image.jpg", 1024 * 1024)); // 1MB file
-
-        // Invalid image file (wrong extension)
-        $this->assertFalse($this->checker->isValidImage("/path/to/file.txt"));
+        $this->assertTrue(R::isValidPhoneNumber('+1234567890123'));
+        $this->assertFalse(R::isValidPhoneNumber('1234567890'));
     }
 
-    public function testIsValidCountry()
-    {
-        // Simulate valid country (Assume API returns a valid response for testing)
-        $this->assertTrue($this->checker->isValidCountry("Bangladesh"));
+    // --- age ----------------------------------------------------------------
 
-        // Simulate invalid country (Country not found)
-        $this->assertFalse($this->checker->isValidCountry("InvalidCountry"));
+    public function testAge()
+    {
+        $this->assertTrue(R::isAgeValid('2000-01-01'));
+        $this->assertFalse(R::isAgeValid((new \DateTime('-5 years'))->format('Y-m-d')));
     }
 
-    public function testIsValidLanguage()
+    public function testFutureBirthDateIsInvalid()
     {
-        // Simulate valid language (Assume API returns a valid response for testing)
-        $this->assertTrue($this->checker->isValidLanguage("English"));
-
-        // Simulate invalid language (Language not found)
-        $this->assertFalse($this->checker->isValidLanguage("InvalidLanguage"));
+        $this->assertFalse(R::isAgeValid('2999-01-01'));
     }
 
-    public function testIsValidDocument()
+    public function testGarbageDateIsInvalid()
     {
-        // Valid document file (simulated path and size)
-        $this->assertTrue($this->checker->isValidDocument("/path/to/file.pdf", 1024 * 1024)); // 1MB file
+        $this->assertFalse(R::isAgeValid('not-a-date'));
+    }
 
-        // Invalid document file (wrong extension)
-        $this->assertFalse($this->checker->isValidDocument("/path/to/file.txt"));
+    // --- upload content validation (the security fix) -----------------------
+
+    public function testValidPngAccepted()
+    {
+        $png = $this->write('pic.png', base64_decode(self::PNG_B64));
+        $this->assertTrue(R::isValidImage($png));
+    }
+
+    public function testScriptRenamedToJpgRejected()
+    {
+        $evil = $this->write('evil.jpg', "<?php system(\$_GET['c']); ?>");
+        $this->assertFalse(R::isValidImage($evil)); // extension lies; content isn't an image
+    }
+
+    public function testMissingImageRejected()
+    {
+        $this->assertFalse(R::isValidImage($this->dir . '/nope.jpg'));
+    }
+
+    public function testSvgAccepted()
+    {
+        $svg = $this->write('vector.svg', '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg"></svg>');
+        $this->assertTrue(R::isValidImage($svg));
+    }
+
+    public function testValidTextDocumentAccepted()
+    {
+        $doc = $this->write('notes.txt', 'just some text');
+        $this->assertTrue(R::isValidDocument($doc));
+    }
+
+    public function testScriptRenamedToPdfRejected()
+    {
+        $evil = $this->write('evil.pdf', "<?php eval(\$_POST['x']); ?>");
+        $this->assertFalse(R::isValidDocument($evil));
+    }
+
+    public function testOversizeRejected()
+    {
+        $doc = $this->write('big.txt', str_repeat('x', 100));
+        $this->assertFalse(R::isValidDocument($doc, 10)); // max 10 bytes
+    }
+
+    public function testCustomExtension()
+    {
+        $this->assertTrue(R::isValidCustomExtension('a.LOG', ['log', 'txt']));
+        $this->assertFalse(R::isValidCustomExtension('a.exe', ['log', 'txt']));
+    }
+
+    // --- malware heuristic --------------------------------------------------
+
+    public function testMalwareHeuristicFlagsEval()
+    {
+        $f = $this->write('x.php', "<?php eval(base64_decode('ZWNobyAx')); ?>");
+        $this->assertTrue(R::containsMalware($f));
+    }
+
+    public function testMalwareHeuristicDoesNotFlagFopen()
+    {
+        $f = $this->write('ok.php', "<?php \$h = fopen('a.txt', 'r'); fclose(\$h);");
+        $this->assertFalse(R::containsMalware($f)); // fopen is no longer a trigger
+    }
+
+    // --- country / language (offline, injected lists) -----------------------
+
+    public function testCountryWithInjectedListIsCaseInsensitive()
+    {
+        $list = ['Bangladesh', 'India', 'Japan'];
+        $this->assertTrue(R::isValidCountry('bangladesh', $list));
+        $this->assertFalse(R::isValidCountry('Atlantis', $list));
+    }
+
+    public function testLanguageWithInjectedList()
+    {
+        $list = ['English', 'Bengali'];
+        $this->assertTrue(R::isValidLanguage('english', $list));
+        $this->assertFalse(R::isValidLanguage('Klingon', $list));
     }
 }
